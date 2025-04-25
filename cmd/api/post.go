@@ -18,23 +18,26 @@ func (app *application) getPosts(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, &posts)
 }
 
+type CreatePostRequest struct {
+	Title   string   `json:"title"`
+	Content string   `json:"content"`
+	Tags    []string `json:"tags"`
+}
+
 func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	var post store.Post
+	var payload CreatePostRequest
 
-	var createPostRequest struct {
-		Title   string `json:"title"`
-		Content string `json:"content"`
-	}
-
-	if err := readJSON(w, r, &createPostRequest); err != nil {
+	if err := readJSON(w, r, &payload); err != nil {
 		log.Printf("create post failed, JSON parsing error: %s", err.Error())
 		writeJSON(w, http.StatusInternalServerError, &ErrorResponse{"Something went wrong"})
 		return
 	}
 
-	post.Title = createPostRequest.Title
-	post.Content = createPostRequest.Content
+	post.Title = payload.Title
+	post.Content = payload.Content
+	post.Tags = payload.Tags
 	// post.UserId = r.Context().Value("currentUser").(int64)
 	post.UserId = 151
 

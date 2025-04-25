@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"log"
+
+	"github.com/lib/pq"
 )
 
 type User struct {
@@ -17,12 +19,13 @@ type User struct {
 }
 
 type Post struct {
-	Id        int64  `json:"id"`
-	UserId    int64  `json:"userId"`
-	Title     string `json:"title"`
-	Content   string `json:"content"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	Id        int64    `json:"id"`
+	UserId    int64    `json:"userId"`
+	Title     string   `json:"title"`
+	Content   string   `json:"content"`
+	Tags      []string `json:"tags"`
+	CreatedAt string   `json:"created_at"`
+	UpdatedAt string   `json:"updated_at"`
 }
 
 type Store struct {
@@ -152,8 +155,8 @@ func (repo *PostStore) GetAll(ctx context.Context) (*[]Post, error) {
 func (repo *PostStore) Create(ctx context.Context, post *Post) error {
 
 	q := `
-		INSERT INTO "Post" (title, content, user_id) 
-		VALUES ($1, $2, $3) 
+		INSERT INTO "Post" (title, content, tags, user_id) 
+		VALUES ($1, $2, $3, $4) 
 		RETURNING id, created_at
 		`
 
@@ -161,7 +164,9 @@ func (repo *PostStore) Create(ctx context.Context, post *Post) error {
 		q,
 		&post.Title,
 		&post.Content,
-		&post.UserId).Scan(
+		pq.Array(post.Tags),
+		&post.UserId,
+	).Scan(
 		&post.Id,
 		&post.CreatedAt,
 	)

@@ -3,10 +3,13 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 
 	"github.com/lib/pq"
 )
+
+var ErrPostNotFound = errors.New("Post not found")
 
 type User struct {
 	Id         int64  `json:"id"`
@@ -37,6 +40,7 @@ type Store struct {
 	Post interface {
 		GetAll(context.Context) (*[]Post, error)
 		Create(context.Context, *Post) error
+		GetById(context.Context, int64) (*Post, error)
 	}
 }
 
@@ -179,6 +183,35 @@ func (repo *PostStore) Create(ctx context.Context, post *Post) error {
 	return nil
 }
 
+func (repo *PostStore) GetById(ctx context.Context, id int64) (*Post, error) {
+
+	q := `
+	SELECT id, user_id, title, content, tags, updated_at, created_at FROM "Post" WHERE id = $1
+	`
+	row := repo.db.QueryRowContext(ctx, q, id)
+
+	var post Post
+	err := row.Scan(
+		&post.Id,
+		&post.UserId,
+		&post.Title,
+		&post.Content,
+		pq.Array(&post.Tags),
+		&post.CreatedAt,
+		&post.UpdatedAt)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrPostNotFound
+		default:
+			log.Printf("store.Post.findById:: %s", err.Error())
+			return nil, err
+		}
+	}
+
+	return &post, nil
+}
 func NewStore(db *sql.DB) Store {
 	return Store{
 		User: &UserStore{db},

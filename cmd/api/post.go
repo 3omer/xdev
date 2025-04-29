@@ -8,6 +8,7 @@ import (
 
 	store "github.com/3omer/xdev/internal"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 )
 
 func (app *application) getPosts(w http.ResponseWriter, r *http.Request) {
@@ -22,8 +23,8 @@ func (app *application) getPosts(w http.ResponseWriter, r *http.Request) {
 }
 
 type CreatePostRequest struct {
-	Title   string   `json:"title"`
-	Content string   `json:"content"`
+	Title   string   `json:"title" validate:"max=100"`
+	Content string   `json:"content" validate:"required,max=1000,min=1"`
 	Tags    []string `json:"tags"`
 }
 
@@ -35,6 +36,22 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	if err := readJSON(w, r, &payload); err != nil {
 		log.Printf("create post failed, JSON parsing error: %s", err.Error())
 		app.badRequestResponse(w, r, "Invalid payload")
+		return
+	}
+
+	err := Validate.Struct(&payload)
+
+	if err != nil {
+		var validateErrs validator.ValidationErrors
+		fieldsErrs := map[string]string{}
+		if errors.As(err, &validateErrs) {
+			for _, err := range validateErrs {
+				fieldsErrs[err.Field()] = "validation failed" // why this is so much work
+			}
+			writeJSON(w, http.StatusBadRequest, fieldsErrs)
+			return
+		}
+		app.internalServerErrorResponse(w, r, "ugh")
 		return
 	}
 

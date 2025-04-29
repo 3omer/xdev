@@ -57,12 +57,12 @@ func (app *application) mount() http.Handler {
 }
 
 func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Request, msg string) {
-	log.Printf("Bad request handling [%s][%s], error: %s", r.Method, r.URL.Path, msg)
+	log.Printf("Bad request [%s][%s], error: %s", r.Method, r.URL.Path, msg)
 	writeJSON(w, http.StatusBadRequest, &ErrorResponse{msg})
 }
 
 func (app *application) internalServerErrorResponse(w http.ResponseWriter, r *http.Request, msg string) {
-	log.Printf("Server error handling [%s][%s], error: %s", r.Method, r.URL.Path, msg)
+	log.Printf("Server error [%s][%s], error: %s", r.Method, r.URL.Path, msg)
 	writeJSON(w, http.StatusInternalServerError, &ErrorResponse{msg})
 }
 

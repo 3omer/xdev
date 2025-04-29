@@ -34,7 +34,7 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 
 	if err := readJSON(w, r, &payload); err != nil {
 		log.Printf("create post failed, JSON parsing error: %s", err.Error())
-		writeJSON(w, http.StatusInternalServerError, &ErrorResponse{"Something went wrong"})
+		app.badRequestResponse(w, r, "Invalid payload")
 		return
 	}
 
@@ -46,7 +46,7 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 
 	if err := app.store.Post.Create(r.Context(), &post); err != nil {
 		log.Printf("create post failed, store error: %s", err.Error())
-		writeJSON(w, http.StatusInternalServerError, &ErrorResponse{"Something went wrong"})
+		app.internalServerErrorResponse(w, r, "Something went wrong")
 		return
 	}
 
@@ -61,7 +61,7 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Printf("get post by id failed, parse url param error: %s", err.Error())
-		writeJSON(w, http.StatusBadRequest, &ErrorResponse{"invalid id"})
+		app.badRequestResponse(w, r, "Invalid id")
 		return
 	}
 
@@ -70,10 +70,10 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 
 		if errors.Is(err, store.ErrPostNotFound) {
-			writeJSON(w, http.StatusNotFound, &ErrorResponse{"Post not found"})
+			app.badRequestResponse(w, r, "Post not found")
 			return
 		}
-		writeJSON(w, http.StatusInternalServerError, &ErrorResponse{"Something went wrong"})
+		app.internalServerErrorResponse(w, r, "something went wrong")
 		return
 	}
 

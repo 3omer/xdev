@@ -20,7 +20,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 
 	if err := readJSON(w, r, &payload); err != nil {
 		log.Printf("Parsing create user request failed with %s", err.Error())
-		writeJSON(w, http.StatusBadRequest, &ErrorResponse{Message: err.Error()})
+		app.badRequestResponse(w, r, "Invalid payload")
 		return
 	}
 
@@ -32,7 +32,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 	if err := app.store.User.Create(r.Context(), &user); err != nil {
 		// constraint violation error, validation error, conn error? how do i tell
 		log.Printf("create user request failed: %s", err.Error())
-		writeJSON(w, http.StatusBadRequest, &ErrorResponse{"Something went wrong"})
+		app.internalServerErrorResponse(w, r, "Something went wrong")
 		return
 	}
 
@@ -45,7 +45,8 @@ func (app *application) getAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.Write([]byte(err.Error()))
-		writeJSON(w, http.StatusInternalServerError, &ErrorResponse{"Something went wrong"})
+		app.internalServerErrorResponse(w, r, "Something went wrong")
+		return
 	}
 
 	writeJSON(w, http.StatusOK, &users)

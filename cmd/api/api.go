@@ -56,6 +56,16 @@ func (app *application) mount() http.Handler {
 	return r
 }
 
+func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Request, msg string) {
+	log.Printf("Bad request handling [%s][%s], error: %s", r.Method, r.URL.Path, msg)
+	writeJSON(w, http.StatusBadRequest, &ErrorResponse{msg})
+}
+
+func (app *application) internalServerErrorResponse(w http.ResponseWriter, r *http.Request, msg string) {
+	log.Printf("Server error handling [%s][%s], error: %s", r.Method, r.URL.Path, msg)
+	writeJSON(w, http.StatusInternalServerError, &ErrorResponse{msg})
+}
+
 // creates and starts http server using a handler
 func (app *application) run(mux http.Handler) error {
 

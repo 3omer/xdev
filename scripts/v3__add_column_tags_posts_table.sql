@@ -1,1 +1,0 @@
-ALTER TABLE "Post" ADD COLUMN "tags" VARCHAR(100) [];

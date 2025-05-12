@@ -22,13 +22,14 @@ func main() {
 
 	config := config{
 		addr:           os.Getenv("ADDR"),
+		dbURL:          os.Getenv("DB_URL"),
 		dbMaxOpenConns: 30,
 		dbMaxIdleConns: 30,
 		dbMaxIdleTime:  "15m",
 		env:            os.Getenv("ENV"),
 	}
 
-	db, err := sql.Open("postgres", "postgres://postgres:postgres@localhost/xdev?sslmode=disable")
+	db, err := sql.Open("postgres", config.dbURL)
 	db.SetMaxOpenConns(config.dbMaxOpenConns)
 	db.SetMaxIdleConns(config.dbMaxIdleConns)
 

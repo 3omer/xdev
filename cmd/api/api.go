@@ -17,6 +17,7 @@ type application struct {
 
 type config struct {
 	addr           string
+	dbURL          string
 	dbMaxOpenConns int
 	dbMaxIdleConns int
 	dbMaxIdleTime  string

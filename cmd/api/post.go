@@ -127,6 +127,61 @@ func (app *application) getPostComments(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, data)
 }
 
+func (app *application) createComment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userId := ctx.Value("userId").(int64)
+
+	if userId == 0 {
+		app.UnauthorizedRequest(w, r)
+		return
+	}
+
+	paramPostId := chi.URLParam(r, "id")
+	postId, err := strconv.ParseInt(paramPostId, 10, 64)
+	if err != nil {
+		log.Printf("Parsing post-id param failed: %s", err.Error())
+		app.badRequestResponse(w, r, "invalid post-id param")
+		return
+	}
+
+	log.Printf("Creating new comment: user{%v}, post{%v}", userId, postId)
+
+	var payload CreateCommentRequest
+	err = readJSON(w, r, &payload)
+
+	if err != nil {
+		log.Print("Parsing failed ", err.Error())
+		app.badRequestResponse(w, r, "bad request")
+		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		log.Printf("Validation error %s", err.Error())
+		app.badRequestResponse(w, r, "Invalid payload")
+		return
+	}
+
+	comment := &store.Comment{}
+	comment.UserId = userId
+	comment.PostId = postId
+	comment.Content = payload.Content
+
+	err = app.store.Comment.Create(ctx, comment)
+
+	if err != nil {
+		log.Printf("failed to create comment %s", err.Error())
+		app.internalServerErrorResponse(w, r, "Something went wrong")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, struct{}{})
+
+}
+
+type CreateCommentRequest struct {
+	Content string `json:"content" validate:"required,max=1000,min=1"`
+}
+
 type CommentsResponse struct {
 	Id      int64  `json:"id"`
 	UserId  int64  `json:"userId"`

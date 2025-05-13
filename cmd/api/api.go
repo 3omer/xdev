@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"time"
 
-	store "github.com/3omer/xdev/internal"
+	"github.com/3omer/xdev/internal"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 type application struct {
 	config config
-	store  store.Store
+	store  internal.Store
 }
 
 type config struct {
@@ -28,11 +28,15 @@ type config struct {
 // returns http.Handler
 func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
+
 	// A good base middleware stack
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	// until we have auth
+	r.Use(internal.UserId)
 
 	// Set a timeout value on the request context (ctx), that will signal
 	// through ctx.Done() that the request has timed out and further
@@ -54,6 +58,7 @@ func (app *application) mount() http.Handler {
 		r.Post("/", app.createPostHandler)
 		r.Get("/{id}", app.getPostHandler)
 		r.Get("/{id}/comments", app.getPostComments)
+		r.Post("/{id}/comments", app.createComment)
 	})
 	return r
 }
@@ -66,6 +71,11 @@ func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Reques
 func (app *application) internalServerErrorResponse(w http.ResponseWriter, r *http.Request, msg string) {
 	log.Printf("Server error [%s][%s], error: %s", r.Method, r.URL.Path, msg)
 	writeJSON(w, http.StatusInternalServerError, &ErrorResponse{msg})
+}
+
+func (app *application) UnauthorizedRequest(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Unauthorized request [%s][%s]", r.Method, r.URL.Path)
+	writeJSON(w, http.StatusForbidden, &ErrorResponse{"Forbidden"})
 }
 
 // creates and starts http server using a handler

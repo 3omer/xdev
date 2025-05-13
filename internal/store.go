@@ -1,4 +1,4 @@
-package store
+package internal
 
 import (
 	"context"
@@ -53,6 +53,7 @@ type Store struct {
 
 	Comment interface {
 		GetByPostId(context.Context, int64) (*[]Comment, error)
+		Create(context.Context, *Comment) error
 	}
 }
 
@@ -267,6 +268,22 @@ func (repo *CommentStore) GetByPostId(ctx context.Context, postId int64) (*[]Com
 	}
 
 	return &comments, nil
+}
+
+func (repo *CommentStore) Create(ctx context.Context, comment *Comment) error {
+	q := `INSERT INTO "Comment" (user_id, post_id, content) 
+	VALUES ($1, $2, $3)
+	RETURNING id, created_at
+	`
+
+	row := repo.db.QueryRowContext(ctx, q, comment.UserId, comment.PostId, comment.Content)
+
+	if err := row.Scan(&comment.Id, &comment.CreatedAt); err != nil {
+		log.Printf("Failed to create comment %s", err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func NewStore(db *sql.DB) Store {

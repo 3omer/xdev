@@ -53,6 +53,7 @@ func (app *application) mount() http.Handler {
 		r.Get("/", app.getPosts)
 		r.Post("/", app.createPostHandler)
 		r.Get("/{id}", app.getPostHandler)
+		r.Get("/{id}/comments", app.getPostComments)
 	})
 	return r
 }

@@ -31,6 +31,14 @@ type Post struct {
 	UpdatedAt string   `json:"updated_at"`
 }
 
+type Comment struct {
+	Id        int64
+	UserId    int64
+	PostId    int64
+	Content   string
+	CreatedAt string
+	UpdatedAt string
+}
 type Store struct {
 	User interface {
 		GetAll(context.Context) (*[]User, error)
@@ -41,6 +49,10 @@ type Store struct {
 		GetAll(context.Context) (*[]Post, error)
 		Create(context.Context, *Post) error
 		GetById(context.Context, int64) (*Post, error)
+	}
+
+	Comment interface {
+		GetByPostId(context.Context, int64) (*[]Comment, error)
 	}
 }
 
@@ -212,9 +224,55 @@ func (repo *PostStore) GetById(ctx context.Context, id int64) (*Post, error) {
 
 	return &post, nil
 }
+
+type CommentStore struct {
+	db *sql.DB
+}
+
+func (repo *CommentStore) GetByPostId(ctx context.Context, postId int64) (*[]Comment, error) {
+	// var comments []Comment
+	comments := []Comment{}
+
+	q := `
+	SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, c.updated_at 
+	FROM "Comment" c JOIN "Post" p 
+	ON c.post_id = p.id 
+	WHERE c.post_id = $1 
+	ORDER BY c.created_at DESC;
+	`
+
+	rows, err := repo.db.QueryContext(ctx, q, postId)
+	if err != nil {
+		log.Printf("GetByPostId failed:: %s", err.Error())
+		return nil, err
+	}
+
+	var comment Comment
+	for rows.Next() {
+		err := rows.Scan(
+			&comment.Id,
+			&comment.PostId,
+			&comment.UserId,
+			&comment.Content,
+			&comment.CreatedAt,
+			&comment.UpdatedAt,
+		)
+
+		if err != nil {
+			log.Printf("Reading row from Comment failed:: %s", err.Error())
+			return nil, err
+		}
+
+		comments = append(comments, comment)
+	}
+
+	return &comments, nil
+}
+
 func NewStore(db *sql.DB) Store {
 	return Store{
-		User: &UserStore{db},
-		Post: &PostStore{db},
+		User:    &UserStore{db},
+		Post:    &PostStore{db},
+		Comment: &CommentStore{db},
 	}
 }

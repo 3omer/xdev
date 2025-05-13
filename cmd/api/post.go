@@ -96,3 +96,40 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, &post)
 }
+
+func (app *application) getPostComments(w http.ResponseWriter, r *http.Request) {
+	postIdParam := chi.URLParam(r, "id")
+	postId, err := strconv.ParseInt(postIdParam, 10, 64)
+
+	if err != nil {
+		log.Printf("Failed to parse post-id {%s}, error %s", postIdParam, err.Error())
+		app.badRequestResponse(w, r, "Invalid post-id param")
+		return
+	}
+
+	comments, err := app.store.Comment.GetByPostId(r.Context(), postId)
+
+	if err != nil {
+		log.Printf("Failed to fetch comments for post {%v}, error: %s", postId, err.Error())
+		app.internalServerErrorResponse(w, r, "Something went wrong")
+		return
+	}
+	data := []CommentsResponse{}
+
+	for _, c := range *comments {
+		data = append(data, CommentsResponse{
+			Id:      c.Id,
+			UserId:  c.UserId,
+			PostId:  c.PostId,
+			Content: c.Content,
+		})
+	}
+	writeJSON(w, http.StatusOK, data)
+}
+
+type CommentsResponse struct {
+	Id      int64  `json:"id"`
+	UserId  int64  `json:"userId"`
+	PostId  int64  `json:"postId"`
+	Content string `json:"content"`
+}

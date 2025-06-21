@@ -57,9 +57,9 @@ func (app *application) mount() http.Handler {
 		r.Get("/", app.getPosts)
 		r.Post("/", app.createPostHandler)
 		r.Get("/{id}", app.getPostHandler)
-		r.Get("/{id}/comments", app.getPostComments)
-		r.Post("/{id}/comments", app.createComment)
-		r.Patch("/{id}", app.updatePost)
+		r.Get("/{id}/comments", app.getPostCommentsHandler)
+		r.Post("/{id}/comments", app.createCommentHandler)
+		r.Patch("/{id}", app.updatePostHandler)
 		r.Delete("/{id}", app.deletePostHandler)
 	})
 	return r

@@ -103,7 +103,7 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, &post)
 }
 
-func (app *application) getPostComments(w http.ResponseWriter, r *http.Request) {
+func (app *application) getPostCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	postIdParam := chi.URLParam(r, "id")
 	postId, err := strconv.ParseInt(postIdParam, 10, 64)
 
@@ -133,7 +133,7 @@ func (app *application) getPostComments(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, data)
 }
 
-func (app *application) createComment(w http.ResponseWriter, r *http.Request) {
+func (app *application) createCommentHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := ctx.Value("userId").(int64)
 
@@ -184,7 +184,7 @@ func (app *application) createComment(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (app *application) updatePost(w http.ResponseWriter, r *http.Request) {
+func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO: only post author can update their posts!
 	ctx := r.Context()
 	// TODO: refactor parsing ids from url param

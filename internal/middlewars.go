@@ -16,7 +16,7 @@ func UserId(next http.Handler) http.Handler {
 		userIdStr := r.Header.Get("X-User-Id")
 		userId, _ := strconv.ParseInt(userIdStr, 10, 64)
 		ctx = context.WithValue(ctx, "userId", userId)
-		log.Printf("User is {%v}", userId)
+		log.Printf("Middleware: User is {%v}", userId)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)

@@ -36,7 +36,7 @@ type UpdatePostRequest struct {
 }
 
 func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request) {
-
+	ctx := r.Context()
 	var post store.Post
 	var payload CreatePostRequest
 
@@ -65,8 +65,7 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	post.Title = payload.Title
 	post.Content = payload.Content
 	post.Tags = payload.Tags
-	// post.UserId = r.Context().Value("currentUser").(int64)
-	post.UserId = 151
+	post.UserId = ctx.Value("userId").(int64)
 
 	if err := app.store.Post.Create(r.Context(), &post); err != nil {
 		log.Printf("create post failed, store error: %s", err.Error())

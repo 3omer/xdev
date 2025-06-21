@@ -12,9 +12,10 @@ import (
 )
 
 func (app *application) getPosts(w http.ResponseWriter, r *http.Request) {
-	posts, err := app.store.User.GetAll(r.Context())
+	posts, err := app.store.Post.GetAll(r.Context())
 
 	if err != nil {
+		log.Printf("Failed to get posts %s", err.Error())
 		writeJSON(w, http.StatusInternalServerError, &ErrorResponse{"Something went wrong"})
 		return
 	}
@@ -23,6 +24,12 @@ func (app *application) getPosts(w http.ResponseWriter, r *http.Request) {
 }
 
 type CreatePostRequest struct {
+	Title   string   `json:"title" validate:"max=100"`
+	Content string   `json:"content" validate:"required,max=1000,min=1"`
+	Tags    []string `json:"tags"`
+}
+
+type UpdatePostRequest struct {
 	Title   string   `json:"title" validate:"max=100"`
 	Content string   `json:"content" validate:"required,max=1000,min=1"`
 	Tags    []string `json:"tags"`
@@ -176,6 +183,51 @@ func (app *application) createComment(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, struct{}{})
 
+}
+
+func (app *application) updatePost(w http.ResponseWriter, r *http.Request) {
+	// TODO: only post author can update their posts!
+	ctx := r.Context()
+	// TODO: refactor parsing ids from url param
+	postIdParam := chi.URLParam(r, "id")
+	postId, err := strconv.ParseInt(postIdParam, 10, 64)
+
+	if err != nil {
+		app.badRequestResponse(w, r, "bad request, invalid id")
+		return
+	}
+
+	var payload UpdatePostRequest
+	if err := readJSON(w, r, &payload); err != nil {
+		log.Printf("Failed to parse payload, error %s ", err.Error())
+		app.badRequestResponse(w, r, "bad request")
+		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		log.Printf("Validation error %s", err.Error())
+		app.badRequestResponse(w, r, "Invalid payload")
+		return
+	}
+
+	var updatePostArgs store.UpdatePostArgs
+	updatePostArgs.Title = payload.Title
+	updatePostArgs.Content = payload.Content
+	updatePostArgs.Tags = payload.Tags
+
+	err = app.store.Post.Update(ctx, postId, &updatePostArgs)
+
+	if err != nil {
+		if errors.Is(err, store.ErrPostNotFound) {
+			writeJSON(w, http.StatusNotFound, "not found")
+		} else {
+			app.internalServerErrorResponse(w, r, "Something went wrong")
+		}
+		return
+	}
+
+	log.Printf("Post %v is updated", postId)
+	writeJSON(w, http.StatusOK, struct{ Message string }{"updated"})
 }
 
 type CreateCommentRequest struct {

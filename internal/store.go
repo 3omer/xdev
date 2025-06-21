@@ -31,6 +31,12 @@ type Post struct {
 	UpdatedAt string   `json:"updated_at"`
 }
 
+type UpdatePostArgs struct {
+	Title   string
+	Content string
+	Tags    []string
+}
+
 type Comment struct {
 	Id        int64
 	UserId    int64
@@ -49,6 +55,7 @@ type Store struct {
 		GetAll(context.Context) (*[]Post, error)
 		Create(context.Context, *Post) error
 		GetById(context.Context, int64) (*Post, error)
+		Update(context.Context, int64, *UpdatePostArgs) error
 	}
 
 	Comment interface {
@@ -137,7 +144,7 @@ type PostStore struct {
 
 func (repo *PostStore) GetAll(ctx context.Context) (*[]Post, error) {
 
-	rows, err := repo.db.QueryContext(ctx, `SELECT id, userId, title, content, createdAt, updatedAt FROM "Post"`)
+	rows, err := repo.db.QueryContext(ctx, `SELECT id, user_id, title, content, created_at, updated_at FROM "Post"`)
 
 	if err != nil {
 		return nil, err
@@ -224,6 +231,32 @@ func (repo *PostStore) GetById(ctx context.Context, id int64) (*Post, error) {
 	}
 
 	return &post, nil
+}
+
+func (repo *PostStore) Update(ctx context.Context, id int64, args *UpdatePostArgs) error {
+	log.Printf("updating post %d", id)
+
+	q := `UPDATE "Post"
+	 SET title = $2, 
+	 content = $3, 
+	 tags =  $4 
+	 WHERE id = $1
+	 RETURNING updated_at
+	 `
+	var updatedAt string
+	row := repo.db.QueryRowContext(ctx, q, id, args.Title, args.Content, pq.Array(&args.Tags))
+
+	if err := row.Scan(&updatedAt); err != nil {
+		log.Printf("Post.Update failed error: %s", err.Error())
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrPostNotFound
+		}
+		// TODO: should return custom error
+		return err
+	}
+
+	log.Printf("Post %d updated, date %s", id, updatedAt)
+	return nil
 }
 
 type CommentStore struct {

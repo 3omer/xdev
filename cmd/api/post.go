@@ -229,6 +229,33 @@ func (app *application) updatePost(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, struct{ Message string }{"updated"})
 }
 
+func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO: only post author can delete their posts!
+	ctx := r.Context()
+	// TODO: refactor parsing ids from url param
+	postIdParam := chi.URLParam(r, "id")
+	postId, err := strconv.ParseInt(postIdParam, 10, 64)
+
+	if err != nil {
+		app.badRequestResponse(w, r, "bad request, invalid id")
+		return
+	}
+
+	err = app.store.Post.DeleteById(ctx, postId)
+
+	if err != nil {
+		if errors.Is(err, store.ErrPostNotFound) {
+			writeJSON(w, http.StatusNotFound, "not found")
+		} else {
+			app.internalServerErrorResponse(w, r, "Something went wrong")
+		}
+		return
+	}
+
+	log.Printf("Post %v is deleted", postId)
+	writeJSON(w, http.StatusOK, struct{ Message string }{"deleted"})
+}
+
 type CreateCommentRequest struct {
 	Content string `json:"content" validate:"required,max=1000,min=1"`
 }

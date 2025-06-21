@@ -60,6 +60,7 @@ func (app *application) mount() http.Handler {
 		r.Get("/{id}/comments", app.getPostComments)
 		r.Post("/{id}/comments", app.createComment)
 		r.Patch("/{id}", app.updatePost)
+		r.Delete("/{id}", app.deletePostHandler)
 	})
 	return r
 }

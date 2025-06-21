@@ -27,6 +27,7 @@ type Post struct {
 	Title     string   `json:"title"`
 	Content   string   `json:"content"`
 	Tags      []string `json:"tags"`
+	IsDeleted bool     `json:"isDeleted"`
 	CreatedAt string   `json:"created_at"`
 	UpdatedAt string   `json:"updated_at"`
 }
@@ -56,6 +57,7 @@ type Store struct {
 		Create(context.Context, *Post) error
 		GetById(context.Context, int64) (*Post, error)
 		Update(context.Context, int64, *UpdatePostArgs) error
+		DeleteById(context.Context, int64) error
 	}
 
 	Comment interface {
@@ -144,7 +146,11 @@ type PostStore struct {
 
 func (repo *PostStore) GetAll(ctx context.Context) (*[]Post, error) {
 
-	rows, err := repo.db.QueryContext(ctx, `SELECT id, user_id, title, content, created_at, updated_at FROM "Post"`)
+	rows, err := repo.db.QueryContext(ctx,
+		`SELECT id, user_id, title, content, created_at, updated_at 
+			FROM "Post" 
+			WHERE is_deleted = false;
+	`)
 
 	if err != nil {
 		return nil, err
@@ -206,7 +212,8 @@ func (repo *PostStore) Create(ctx context.Context, post *Post) error {
 func (repo *PostStore) GetById(ctx context.Context, id int64) (*Post, error) {
 
 	q := `
-	SELECT id, user_id, title, content, tags, updated_at, created_at FROM "Post" WHERE id = $1
+	SELECT id, user_id, title, content, tags, is_deleted, updated_at, created_at 
+	FROM "Post" WHERE id = $1 AND is_deleted = FALSE;
 	`
 	row := repo.db.QueryRowContext(ctx, q, id)
 
@@ -217,6 +224,7 @@ func (repo *PostStore) GetById(ctx context.Context, id int64) (*Post, error) {
 		&post.Title,
 		&post.Content,
 		pq.Array(&post.Tags),
+		&post.IsDeleted,
 		&post.CreatedAt,
 		&post.UpdatedAt)
 
@@ -256,6 +264,31 @@ func (repo *PostStore) Update(ctx context.Context, id int64, args *UpdatePostArg
 	}
 
 	log.Printf("Post %d updated, date %s", id, updatedAt)
+	return nil
+}
+
+func (repo *PostStore) DeleteById(ctx context.Context, id int64) error {
+
+	log.Printf("deleting post %d", id)
+
+	q := `UPDATE "Post"
+	 SET is_deleted = 'TRUE' 
+	 WHERE id = $1
+	 RETURNING updated_at
+	 `
+	var updatedAt string
+	row := repo.db.QueryRowContext(ctx, q, id)
+
+	if err := row.Scan(&updatedAt); err != nil {
+		log.Printf("Post.DeleteById failed error: %s", err.Error())
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrPostNotFound
+		}
+		// TODO: should return custom error
+		return err
+	}
+
+	log.Printf("Post %d deleted, updatedAt %s", id, updatedAt)
 	return nil
 }
 
